@@ -18,6 +18,7 @@ from form_tx import form_coinbase, form_transaction
 
 g_miner_reward = 5000
 halving_time = 1
+first_prev_txid = "00000000000000000000000000000000000000000000000000000000000000"
 
 class Blockchain():
 
@@ -68,7 +69,7 @@ class Blockchain():
         serialized_cb = Serializer().serialize( form_coinbase(self.address, self.miner_wif, self.miner_reward) )
         txs = [serialized_cb]
         nonce = 1
-        b = Block(time.time(), "0", txs, nonce).mine(self.complexity)
+        b = Block(time.time(), first_prev_txid, txs, nonce).mine(self.complexity)
         self.db.insert({'t': b.timestamp, 'nonce': b.nonce, 'prev_hash': b.prev_hash, 'txs': b.txs, 'hash': b.hash, 'merkle': b.merkle})
         print("Height: " + str(self.height()))
         self.utxo_pool.update_pool(txs)
