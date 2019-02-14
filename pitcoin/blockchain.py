@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 from transaction import Transaction, CoinbaseTransaction, Output
-from block import Block, block_from_JSON
+from block import Block, block_from_JSON, count_target, max_target
 from serializer import Serializer
 import time
 import pending_pool
@@ -13,11 +13,13 @@ import script
 import wallet
 from utxo_set import Utxos
 import re
-import time
+import math
 from form_tx import form_coinbase, form_transaction
+import time
 
+max_time = 10 # 2 weeks
+min_time = 1 # half of a week
 g_miner_reward = 5000
-halving_time = 1
 first_prev_txid = "00000000000000000000000000000000000000000000000000000000000000"
 
 class Blockchain():
@@ -25,12 +27,7 @@ class Blockchain():
     def __init__(self):
         self.db = TinyDB('blks.json')
         self.utxo_pool = Utxos()
-        try:
-            self.complexity = int( open("complexity", "r").read() )
-            self.miner_reward = int( open("miner_reward", "r").read() )
-        except:
-            self.complexity = 0
-            self.miner_reward = g_miner_reward
+        self.bits = 0x10001000
         try:
             with open("miner_key", "r")as f:
                 self.miner_wif = f.read(51)
@@ -45,38 +42,29 @@ class Blockchain():
                 self.address = wallet.gen_address(wallet.get_pubkey_str(privkey))
                 f2.write(self.address + "\n")
 
+
     def mine(self):
         if self.height() == 0:
-            return self.genesis_block()      
-        t0 = time.time()
-        coinbase_tx = form_coinbase(self.address, self.miner_wif, self.miner_reward)
-        txs = pending_pool.get_first3()
+            return self.genesis_block() 
+        coinbase_tx = form_coinbase(self.address, self.miner_wif, self.get_current_reward())
         serialized_cb = Serializer().serialize(coinbase_tx)
+        txs = pending_pool.get_first3()
         txs.insert(0, serialized_cb)
-        nonce = 1
-        b = Block(time.time(), self.prev_hash(), txs, nonce).mine(self.complexity)
-        self.db.insert({'t': b.timestamp, 'nonce': b.nonce, 'prev_hash': b.prev_hash, 'txs': b.txs, 'hash': b.hash, 'merkle': b.merkle})
-        print("Height: " + str(self.height()))
+        b = Block(time.time(), self.prev_hash(), txs).mine(self.bits)
+        if (self.height() + 1) % 5 == 0: # height + not inserted block yet
+            self.recalculate_bits()
+        self.db.insert({'t': b.timestamp, 'nonce': b.nonce, 'prev_hash': b.prev_hash, 'txs': b.txs, 'hash': b.hash, 'merkle': b.merkle, \
+            'bits': b.bits , 'difficulty': b.difficulty, 'height': b.height})
         self.utxo_pool.update_pool(txs)
-        print("time: " + str(time.time() - t0))
-        if time.time() - t0 < halving_time:
-            self.update_complexity(self.complexity + 1)
-        if self.height() % 5 == 0 and self.height() > 0:
-            self.update_reward(int(self.miner_reward / 2))
+
 
     def genesis_block(self):
-        t0 = time.time()
-        serialized_cb = Serializer().serialize( form_coinbase(self.address, self.miner_wif, self.miner_reward) )
+        serialized_cb = Serializer().serialize( form_coinbase(self.address, self.miner_wif, self.get_current_reward) )
         txs = [serialized_cb]
-        nonce = 1
-        b = Block(time.time(), first_prev_txid, txs, nonce).mine(self.complexity)
-        self.db.insert({'t': b.timestamp, 'nonce': b.nonce, 'prev_hash': b.prev_hash, 'txs': b.txs, 'hash': b.hash, 'merkle': b.merkle})
-        print("Height: " + str(self.height()))
+        b = Block(time.time(), first_prev_txid, txs).mine(self.get_current_reward())
+        self.db.insert({'t': b.timestamp, 'nonce': b.nonce, 'prev_hash': b.prev_hash, 'txs': b.txs, 'hash': b.hash, 'merkle': b.merkle, \
+            'bits': b.bits , 'difficulty': b.difficulty, 'height': b.height})
         self.utxo_pool.update_pool(txs)
-        if time.time() - t0 < halving_time:
-            self.update_complexity(self.complexity + 1)
-        if self.height() % 5 == 0 and self.height() > 0:
-            self.update_reward(int(self.miner_reward / 2))
 
 
     def resolve_conflicts(self):
@@ -98,9 +86,20 @@ class Blockchain():
             for c in chain:
                 print("BLOCK----> " + str(c))
                 self.db.insert(c)
-            self.update_complexity( int(requests.get("http://" + node + "/getDifficulty").json()) )
-            self.update_reward( int(requests.get("http://" + node + "/getReward").json()) )
         self.utxo_pool.update_pool([])
+
+    def recalculate_bits(self):
+        diff_time = self.db.all()[-1]['t'] - self.db.all()[-6]['t']
+        if diff_time > max_time:
+            diff_time = max_time
+        elif diff_time < min_time:
+            diff_time = min_time
+        curr_bits = int(self.db.all[-1]['bits'], 16)
+        print("Cur bits: " + str(curr_bits))
+        new_target = (diff_time * count_target(curr_bits)) / max_time
+        if new_target > max_target:
+            new_target = max_target
+        self.bits = int(new_target, 16)
 
 
     def is_valid_chain(self):
@@ -147,20 +146,14 @@ class Blockchain():
         height = len(self.db)
         return height
     
-    def difficulty(self):
-        return self.complexity
-
-    def update_complexity(self, new_complexity):
-        if new_complexity != self.complexity:
-            print("Complexity set to: " + str(new_complexity))
-        self.complexity = new_complexity
-        open("complexity", "w").write(str(self.complexity))
+    def get_difficulty(self):
+        diff = self.db.all()[-1]['difficulty']
+        return diff
     
-    def update_reward(self, new_reward):
-        if new_reward != self.miner_reward:
-            print("Miner reward set to: " + str(new_reward))
-        self.miner_reward = new_reward
-        open("miner_reward", "w").write(str(self.miner_reward))
+    def get_current_reward(self):
+        denominator = math.pow(2, int(self.height() / 5))
+        return int(g_miner_reward / denominator)
+        
 
 
 

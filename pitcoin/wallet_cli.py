@@ -19,8 +19,8 @@ class Cli(cmd.Cmd):
 
     def __init__(self):
         cmd.Cmd.__init__(self)
-        self.prompt = "> "
-        self.intro  = "*** Wallet command line interface ***\nType 'help' to get usage.\n"
+        self.prompt = "\033[1;32;40m > "
+        self.intro  = "\033[1;34;40m*** Wallet command line interface ***\nType 'help' to get usage.\033[0;37;40m\n"
         self.doc_header = "Commands"
 
         self.tx_to_broadcast = []
@@ -33,12 +33,15 @@ class Cli(cmd.Cmd):
         self.utxo = Utxos()
 
     def do_port(self, args):
+        print("\033[0;37;40m")
+        "Change port"
         if len(args) == 4 and args.isdigit():
             self.server_ip = "http://127.0.0.1:" + args
             print("set: " + self.server_ip)
 
     def do_new(self, args):
         "Generates new pair of public and private keys"
+        print("\033[0;37;40m")
         privkey = wallet.gen_privkey()
         wif = wallet.privkey_to_wif(privkey)
         vk = wallet.get_pubkey_str(privkey)
@@ -54,6 +57,7 @@ class Cli(cmd.Cmd):
 
     def do_import(self, path):
         "Import WIF from file: import PATH"
+        print("\033[0;37;40m")
         if not path:
             print("Please, enter path to file.")
             return
@@ -75,6 +79,7 @@ class Cli(cmd.Cmd):
 
     def do_send(self, args):
         "Sends amount to recepient: send recipient amount"
+        print("\033[0;37;40m")
         try:
             recipient, amount = args.split(" ")
         except:
@@ -97,6 +102,7 @@ class Cli(cmd.Cmd):
         "Sends POST request with serialized transaction data to \
         web API of Pitcoin full node, which provide route /transaction/new\
         (you can use flag -testnet)."
+        print("\033[0;37;40m")
         try:
             if args == "-testnet":
                 self.testnet = 1
@@ -113,6 +119,7 @@ class Cli(cmd.Cmd):
 
     def do_seemempool(self, args):
         "Shows transactions from the mempool in JSON"
+        print("\033[0;37;40m")
         try:
             requests.post(self.server_ip + "/transaction/pending")
         except:
@@ -122,6 +129,7 @@ class Cli(cmd.Cmd):
 
     def do_addr(self, args):
         "Shows list of addresses"
+        print("\033[0;37;40m")
         print("My addresses:")
         for a in self.wif_address.values():
             print("--> " + a)
@@ -129,6 +137,7 @@ class Cli(cmd.Cmd):
 
     def do_balance(self, args):
         "Shows balance of passed address"
+        print("\033[0;37;40m")
         if  not script.check_availability(args):
             print("Please, enter valid address")
             return
@@ -138,6 +147,7 @@ class Cli(cmd.Cmd):
 
     def do_mybalance(self, args):
         "Shows balance of all my imported addresses"
+        print("\033[0;37;40m")
         self.chain.utxo_pool.update_pool([])
         total = 0
         print("Balances of all my addresses: ")
@@ -149,7 +159,7 @@ class Cli(cmd.Cmd):
 
 
     def default(self, line):
-        print("Command is not valid")
+        print("\033[1;31;40m Command is not valid \033[0;37;40m")
 
 if __name__ == "__main__":
     cli = Cli()
