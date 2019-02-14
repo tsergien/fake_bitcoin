@@ -17,7 +17,7 @@ class Block():
         self.prev_hash = prev_hash
         self.txs = txs_list
         self.merkle = merkle.calculate(txs_list)
-        self.bits = 0xffffffff # when do i set it
+        self.bits = 0x10001000 # when do i set it
         self.difficulty = self.count_difficulty()
         self.height = 0
         self.hash = self.calculate_hash()
@@ -39,7 +39,6 @@ class Block():
         while int(self.hash, 16) >= target:
             self.nonce = self.nonce + 1
             self.hash = self.calculate_hash()
-        print("Congratulations! Block " + self.toJSON() + " was mined!")
         return self
 
     def toJSON(self):
