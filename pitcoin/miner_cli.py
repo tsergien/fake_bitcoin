@@ -35,6 +35,18 @@ class Miner_cli(cmd.Cmd):
         self.chain.mine()
         print("Stopping mining")
 
+    def do_mineN(self, args):
+        print("\033[0;37;40m")
+        "start auto mining process"
+        print("Starting mining")
+        nodes = self.chain.get_nodes_list()
+        N = int(args)
+        i = 0
+        while i < N:
+            i += 1
+            self.chain.mine()
+        print("Stopping mining")
+
     def do_automine(self, args):
         print("\033[0;37;40m")
         "start auto mining process"

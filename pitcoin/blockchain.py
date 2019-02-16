@@ -28,7 +28,7 @@ class Blockchain():
         self.db = TinyDB('blks.json')
         self.utxo_pool = Utxos()
         self.utxo_pool.update_pool([])##############################
-        self.bits = 0x333333333
+        self.bits = 0x22222222
         try:
             with open("miner_key", "r")as f:
                 self.miner_wif = f.read(51)
@@ -65,8 +65,8 @@ class Blockchain():
                 'Transaction Counter': len(b.txs),
                 'Transactions': b.txs
                 })
-        if self.height() % 5 == 0:
-            self.recalculate_bits()
+        # if self.height() % 5 == 0:
+        #     self.recalculate_bits()
         self.utxo_pool.update_pool(txs)
 
     def genesis_block(self):
@@ -121,7 +121,7 @@ class Blockchain():
         if new_target > max_target:
             new_target = max_target
         self.bits = to_bitsn(new_target)
-        print("Bits: " + str(self.bits))
+        print("New bits: " + str(self.bits))
 
 
     def is_valid_chain(self):
@@ -143,7 +143,7 @@ class Blockchain():
             lines = f.readlines()
             nodes = []
             for l in lines:
-                nodes.append(l)
+                nodes.append(l.replace("\n", ""))
             f.close()
             return nodes
         except:
@@ -154,7 +154,7 @@ class Blockchain():
             print("Please, enter node in format: ip:port (ex.: 192.12.0.1:5050)")
             return
         with open("nodes.txt", "a+") as f:
-            f.write(ip)
+            f.write(ip + "\n")
         print(str(ip) + " was added to list of nodes.")
         
     def submit_tx(self, route, tx):
@@ -182,13 +182,18 @@ def to_bitsn(target):
     target_str = str(hex(target))[2:]
     if len(target_str) % 2 == 1:
         target_str = "0" + target_str
-    print("target %s" % target_str)
     l = len(target_str)
     while target_str[-1] == "0":
         target_str = target_str[:-1]
     res = str(hex(int(l / 2))) + target_str
     return int(res, 16)
     
+
+
+
+
+
+
 def test():
     bits = 0x180696f4
     print("Bits: " + str(hex(bits)))
