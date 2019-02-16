@@ -46,10 +46,8 @@ class Miner_cli(cmd.Cmd):
                 cur_len = requests.get("http://" + node + "/chain/length")
                 if int(cur_len.json()) > my_len:
                     block = requests.get("http://" + node + "/block/receive").json()
-                    self.chain.update_complexity( int(requests.get("http://" + node + "/getDifficulty").json()) )
-                    self.chain.update_reward( int(requests.get("http://" + node + "/getReward").json()) )
-                    # print("Received: type: " + str(type(block)))
-                    # print("Received: " + block)
+                    print("Received: type: " + str(type(block)))
+                    print("Received: " + block)
                     self.chain.db.insert(block)
             self.chain.mine()
         print("Stopping mining")

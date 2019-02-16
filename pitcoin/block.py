@@ -5,6 +5,7 @@ import hashlib
 from serializer import Deserializer, Transaction
 import json
 import time
+import struct
 from transaction import Transaction, CoinbaseTransaction
 
 max_target = 0x00000000FFFF0000000000000000000000000000000000000000000000000000
@@ -12,21 +13,23 @@ max_target = 0x00000000FFFF0000000000000000000000000000000000000000000000000000
 class Block():
 
     def __init__(self, timestamp, prev_hash, txs_list, nonce = 0):
+        self.version = 1
         self.timestamp = timestamp
         self.nonce = nonce
         self.prev_hash = prev_hash
         self.txs = txs_list
         self.merkle = merkle.calculate(txs_list)
-        self.bits = 0x10001000 # when do i set it
+        self.bits = 0x10001000
         self.difficulty = self.count_difficulty()
         self.height = 0
         self.hash = self.calculate_hash()
 
     def calculate_hash(self):
-        s = str(self.timestamp) + str(self.prev_hash) + str(self.txs) + str(self.nonce) + \
-            str(self.merkle) + str(self.bits) + str(self.difficulty) + \
-                str(self.height)
-        return hashlib.sha256(bytes(s, "utf-8")).hexdigest()
+        print("\n\n" + str(type(self.timestamp)))
+        s = struct.pack("<L", self.version) + bytes(str(self.prev_hash), 'utf-8') + \
+            bytes(str(self.merkle), 'utf-8') + struct.pack("<L", self.timestamp) 
+            # bytes(hex(count_target(self.bits)), 'utf-8') + struct.pack("<L", self.nonce)
+        return hashlib.sha256(s).hexdigest()
 
     def tx_validator(self):
         for t in self.txs:

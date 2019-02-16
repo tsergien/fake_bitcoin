@@ -27,7 +27,7 @@ class Blockchain():
     def __init__(self):
         self.db = TinyDB('blks.json')
         self.utxo_pool = Utxos()
-        self.bits = 0x33333333
+        self.bits = 0x333333333
         try:
             with open("miner_key", "r")as f:
                 self.miner_wif = f.read(51)
@@ -52,7 +52,6 @@ class Blockchain():
         txs.insert(0, serialized_cb)
         b = Block(time.time(), self.prev_hash(), txs).mine(self.bits)
         b.height = self.height()
-        b.bits = self.bits
         print("Congratulations! Block " + b.toJSON() + " was mined!")
         self.db.insert({'t': b.timestamp, 'nonce': b.nonce, 'prev_hash': b.prev_hash, 'txs': b.txs, 'hash': b.hash, 'merkle': b.merkle, \
             'bits': str(hex(b.bits)) , 'difficulty': b.difficulty, 'height': b.height})
@@ -64,7 +63,6 @@ class Blockchain():
         serialized_cb = Serializer().serialize( form_coinbase(self.address, self.miner_wif, self.get_current_reward()) )
         txs = [serialized_cb]
         b = Block(time.time(), first_prev_txid, txs).mine(self.bits)
-        b.bits = self.bits
         print("Congratulations! Block " + b.toJSON() + " was mined!")
         self.db.insert({'t': b.timestamp, 'nonce': b.nonce, 'prev_hash': b.prev_hash, 'txs': b.txs, 'hash': b.hash, 'merkle': b.merkle, \
             'bits': str(hex(b.bits)), 'difficulty': b.difficulty, 'height': b.height})
@@ -100,7 +98,6 @@ class Blockchain():
         elif diff_time < min_time:
             diff_time = min_time
         curr_bits = int(self.db.all()[-1]['bits'], 16)
-        print("Cur bits: " + str(curr_bits))
         new_target = (diff_time * count_target(curr_bits)) / max_time
         if new_target > max_target:
             new_target = max_target
