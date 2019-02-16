@@ -27,6 +27,7 @@ class Blockchain():
     def __init__(self):
         self.db = TinyDB('blks.json')
         self.utxo_pool = Utxos()
+        self.utxo_pool.update_pool([])##############################
         self.bits = 0x333333333
         try:
             with open("miner_key", "r")as f:
@@ -50,22 +51,40 @@ class Blockchain():
         serialized_cb = Serializer().serialize(coinbase_tx)
         txs = pending_pool.get_first3()
         txs.insert(0, serialized_cb)
-        b = Block(time.time(), self.prev_hash(), txs).mine(self.bits)
+        b = Block(time.time(), self.prev_hash(), txs, 0, self.bits).mine()
         b.height = self.height()
         print("Congratulations! Block " + b.toJSON() + " was mined!")
-        self.db.insert({'t': b.timestamp, 'nonce': b.nonce, 'prev_hash': b.prev_hash, 'txs': b.txs, 'hash': b.hash, 'merkle': b.merkle, \
-            'bits': str(hex(b.bits)) , 'difficulty': b.difficulty, 'height': b.height})
-        if self.height() % 5 == 0: # height + not inserted block yet
+        self.db.insert({
+                'Block Size': 0xffffffff,
+                'Version': 1,
+                'Previous Block Hash': b.prev_hash,
+                'Merkle Root': b.merkle,
+                'Timestamp': int(b.timestamp),
+                'Difficulty Target': hex(b.bits),
+                'Nonce': b.nonce,
+                'Transaction Counter': len(b.txs),
+                'Transactions': b.txs
+                })
+        if self.height() % 5 == 0:
             self.recalculate_bits()
         self.utxo_pool.update_pool(txs)
 
     def genesis_block(self):
         serialized_cb = Serializer().serialize( form_coinbase(self.address, self.miner_wif, self.get_current_reward()) )
         txs = [serialized_cb]
-        b = Block(time.time(), first_prev_txid, txs).mine(self.bits)
+        b = Block(time.time(), first_prev_txid, txs, 0,  self.bits).mine()
         print("Congratulations! Block " + b.toJSON() + " was mined!")
-        self.db.insert({'t': b.timestamp, 'nonce': b.nonce, 'prev_hash': b.prev_hash, 'txs': b.txs, 'hash': b.hash, 'merkle': b.merkle, \
-            'bits': str(hex(b.bits)), 'difficulty': b.difficulty, 'height': b.height})
+        self.db.insert({
+                'Block Size': 0xffffffff,
+                'Version': 1,
+                'Previous Block Hash': b.prev_hash,
+                'Merkle Root': b.merkle,
+                'Timestamp': int(b.timestamp),
+                'Difficulty Target': hex(b.bits),
+                'Nonce': b.nonce,
+                'Transaction Counter': len(b.txs),
+                'Transactions': b.txs
+                })
         self.utxo_pool.update_pool(txs)
 
 
@@ -88,17 +107,17 @@ class Blockchain():
             for c in chain:
                 print("BLOCK----> " + str(c))
                 self.db.insert(c)
-        self.utxo_pool.update_pool([])
+                self.utxo_pool.update_pool(c['Transactions'])
 
 
     def recalculate_bits(self):
-        diff_time = self.db.all()[-1]['t'] - self.db.all()[-5]['t']
+        diff_time = self.db.all()[-1]['Timestamp'] - self.db.all()[-5]['Timestamp']
         if diff_time > max_time:
             diff_time = max_time
         elif diff_time < min_time:
             diff_time = min_time
-        curr_bits = int(self.db.all()[-1]['bits'], 16)
-        new_target = (diff_time * count_target(curr_bits)) / max_time
+        curr_bits = int(self.db.all()[-1]['Difficulty Target'], 16)
+        new_target = (diff_time * count_target(curr_bits)) // max_time
         if new_target > max_target:
             new_target = max_target
         self.bits = to_bitsn(new_target)
@@ -142,7 +161,8 @@ class Blockchain():
         requests.post(route, json=tx)
 
     def prev_hash(self):
-        prev_hash = self.db.all()[-1]['hash']
+        prev_block = block_from_JSON(self.height() - 1)
+        prev_hash = prev_block.calculate_hash()
         return prev_hash
 
     def height(self):
@@ -150,7 +170,7 @@ class Blockchain():
         return height
     
     def get_difficulty(self):
-        diff = self.db.all()[-1]['difficulty']
+        diff = self.db.all()[self.height()]['difficulty']
         return diff
     
     def get_current_reward(self):
@@ -159,23 +179,26 @@ class Blockchain():
        
 
 def to_bitsn(target):
-    i = 0
-    while target <= 2**24:
-        target = target // 256
-        i += 1
-    res = f'0x{i:02x}{target:06x}'
-    return res
+    target_str = str(hex(target))[2:]
+    if len(target_str) % 2 == 1:
+        target_str = "0" + target_str
+    print("target %s" % target_str)
+    l = len(target_str)
+    while target_str[-1] == "0":
+        target_str = target_str[:-1]
+    res = str(hex(int(l / 2))) + target_str
+    return int(res, 16)
     
 def test():
-    bits = 0x10001000
-    # bits = 0x11ff00ff
+    bits = 0x180696f4
     print("Bits: " + str(hex(bits)))
     exp = bits >> 24
     mant = bits & 0xffffff
     target = mant * (1 << (8 * (exp - 3)))
     print("Target: " + str(hex(target)))
-    difficulty = 0x00000000FFFF0000000000000000000000000000000000000000000000000000 / target 
-    print("Difficulty: " + str(difficulty))
+    print("to_bits: ", hex(to_bitsn(target)))
 
 if __name__ == "__main__":
     test()
+
+
