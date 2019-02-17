@@ -17,12 +17,11 @@ class Miner_cli(cmd.Cmd):
         self.chain = Blockchain()
         try:
             with open("config.conf", "r") as f:
-                self.server_port = f.read()
+                self.server_port = f.read().replace("\n", "")
         except:
             with open("config.conf", "w") as f:
-                f.write("127.0.0.1:5000")
-            self.server_port = open("config.conf", "r").write("127.0.0.1:5000")
-
+                f.write("http://127.0.0.1:5000")
+            self.server_port = open("config.conf", "r").read().replace("\n", "")
 
     def do_addnode(self, args):
         print("\033[0;37;40m")
@@ -44,20 +43,25 @@ class Miner_cli(cmd.Cmd):
         self.chain.mine()
         print("Stopping mining")
 
-    def do_premineN(self, args):
+    def do_premine(self, args):
         print("\033[0;37;40m")
         "start auto mining process"
         print("Starting mining")
-        addresses = [wallet.gen_address(self.chain.miner_wif), wallet.gen_address(self.chain.miner_wif), wallet.gen_address(self.chain.miner_wif)]
-        N = int(args)
+        addresses =[wallet.gen_address(wallet.wif_to_privkey(self.chain.miner_wif)),\
+                    wallet.gen_address(wallet.wif_to_privkey(self.chain.miner_wif)), \
+                    wallet.gen_address(wallet.wif_to_privkey(self.chain.miner_wif))]
+        if args == "":
+            N = 5
+        else:
+            N = int(args)
         i = 0
         while i < N:
-            i += 1
             # sending random transactions between self addresses
             if i != 0:
                 self.chain.utxo_pool.update_pool([])
                 tx = form_tx.form_transaction(self.chain.address, addresses[i % 3], 70 + i * i, self.chain.utxo_pool, self.chain.miner_wif)
                 self.chain.submit_tx(self.server_port + "/transaction/new", Serializer().serialize(tx))
+            i += 1
             self.chain.mine()
         print("Stopping mining")
 

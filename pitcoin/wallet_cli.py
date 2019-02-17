@@ -32,11 +32,11 @@ class Cli(cmd.Cmd):
         self.utxo = Utxos()
         try:
             with open("config.conf", "r") as f:
-                self.server_port = f.read()
+                self.server_port = f.read().replace("\n", "")
         except:
             with open("config.conf", "w") as f:
-                f.write("127.0.0.1:5000")
-            self.server_port = open("config.conf", "r").write("127.0.0.1:5000")
+                f.write("http://127.0.0.1:5000")
+            self.server_port = open("config.conf", "r").read().replace("\n", "")
 
 
     def do_port(self, args):
@@ -45,6 +45,7 @@ class Cli(cmd.Cmd):
         if len(args) == 4 and args.isdigit():
             self.server_port = "http://127.0.0.1:" + args
             print("set: " + self.server_port)
+
 
     def do_new(self, args):
         "Generates new pair of public and private keys"
@@ -61,6 +62,7 @@ class Cli(cmd.Cmd):
         f.close()
         print("Private key : " + privkey)
         print("Address     : " + pub_address)
+
 
     def do_import(self, path):
         "Import WIF from file: import PATH"

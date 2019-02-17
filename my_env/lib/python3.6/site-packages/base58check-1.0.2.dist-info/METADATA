@@ -1,0 +1,115 @@
+Metadata-Version: 2.1
+Name: base58check
+Version: 1.0.2
+Summary: Base58check encoding and decoding of binary data
+Home-page: https://github.com/joeblackwaslike/base58check
+Author: Joe Black
+Author-email: me@joeblack.nyc
+Maintainer: Joe Black
+Maintainer-email: me@joeblack.nyc
+License: MIT
+Download-URL: https://github.com/joeblackwaslike/base58check/tarball/v1.0.2
+Keywords: base58,base58check,encoding,decoding,bitcoin,altcoin
+Platform: UNKNOWN
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: Operating System :: OS Independent
+Classifier: Natural Language :: English
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.3
+Classifier: Programming Language :: Python :: 3.4
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3 :: Only
+Classifier: Topic :: Internet :: WWW/HTTP
+Classifier: Topic :: Software Development
+Classifier: Topic :: Security :: Cryptography
+Classifier: Topic :: Text Processing
+Classifier: Topic :: Utilities
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+
+
+Base58Check
+===========
+
+
+.. image:: https://travis-ci.org/joeblackwaslike/base58check.svg?branch=master
+   :target: https://travis-ci.org/joeblackwaslike/base58check
+   :alt: Build Status
+
+.. image:: https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat
+   :target: https://github.com/joeblackwaslike/base58check
+   :alt: Github Repo
+
+.. image:: https://img.shields.io/pypi/v/base58check.svg
+   :target: https://pypi.python.org/pypi/base58check
+   :alt: Pypi Version
+
+.. image:: https://img.shields.io/pypi/l/base58check.svg
+   :target: https://pypi.python.org/pypi/base58check
+   :alt: Pypi License
+
+.. image:: https://img.shields.io/pypi/wheel/base58check.svg
+   :target: https://pypi.python.org/pypi/base58check
+   :alt: Pypi Wheel
+
+.. image:: https://img.shields.io/pypi/pyversions/base58check.svg
+   :target: https://pypi.python.org/pypi/base58check
+   :alt: Pypi Versions
+
+
+Maintainer
+----------
+
+Joe Black | me@joeblack.nyc | `github <https://github.com/joeblackwaslike>`_
+
+Introduction
+------------
+
+A python implementation of the Base58Check encoding scheme.
+
+The Base58Check encoding scheme is a modified Base 58 binary-to-text encoding.  More generically, Base58Check encoding is used for encoding byte arrays in Bitcoin into human-typable strings.
+
+*PLEASE NOTE*\ : For consistency with encoding schemes in python, encode inputs must be bytes and will be enforced.  Use ``.encode('ascii')`` on text input to encode to bytes.
+
+
+* ref: https://en.bitcoin.it/wiki/Base58Check_encoding
+
+Installation
+------------
+
+.. code-block:: shell
+
+   pip3 install base58check
+
+Usage
+-----
+
+.. code-block:: python
+
+   >>> import base58check
+
+encoding
+^^^^^^^^
+
+.. code-block:: python
+
+   >>> base58check.b58encode(b'1BoatSLRHtKNngkdXEeobR76b53LETtpyT')
+   b'\x00v\x80\xad\xec\x8e\xab\xca\xba\xc6v\xbe\x9e\x83\x85J\xde\x0b\xd2,\xdb\x0b\xb9`\xde'
+
+decoding (input can be text or bytes here)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: python
+
+   >>> base58check.b58decode('\x00v\x80\xad\xec\x8e\xab\xca\xba\xc6v\xbe\x9e\x83\x85J\xde\x0b\xd2,\xdb\x0b\xb9`\xde')
+   b'1BoatSLRHtKNngkdXEeobR76b53LETtpyT'
+
+Changes
+-------
+
+
+* `CHANGELOG <CHANGELOG.md>`_
+
+
