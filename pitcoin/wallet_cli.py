@@ -24,20 +24,40 @@ class Cli(cmd.Cmd):
         self.intro  = "\033[1;34;40m*** Wallet command line interface ***\nType 'help' to get usage.\033[0;37;40m\n"
         self.doc_header = "Commands"
 
+        self.server_port = "http://127.0.0.1:5000"
         self.tx_to_broadcast = []
         self.chain = Blockchain()
-        self.wif_address = {}
-        self.wif = ""
-        self.address = ""
-        self.testnet = 0
-        self.utxo = Utxos()
+        self.addresses = []
         try:
-            with open("config.conf", "r") as f:
-                self.server_port = f.read().replace("\n", "")
+            with open("addresses.txt", "r") as f:
+                lines = f.readlines()
+            for l in lines:
+                self.addresses.append(l.replace("\n", ""))
         except:
-            with open("config.conf", "w") as f:
-                f.write("http://127.0.0.1:5000")
-            self.server_port = open("config.conf", "r").read().replace("\n", "")
+            pass
+
+        try:
+            with open("mnemonic", "r") as f:
+                self.mnemonic = f.read().replace("\n", "")
+        except:
+            with open("mnemonic", "w") as f:
+                f.write(wallet.get_mnemonic())
+            self.mnemonic = open("mnemonic", "r").read().replace("\n", "")
+        self.seed = wallet.get_seed(self.mnemonic) # hex str
+        self.master_key, self.chaincode = wallet.get_key_chain(self.seed)
+
+        self.wallet = {
+        "seed": self.seed,
+        "private_key": self.master_key,
+        "wif": wallet.privkey_to_wif(self.master_key),
+        "public_key": wallet.get_pubkey_str(self.master_key),
+        "xprivate_key": "",
+        "xpublic_key": "",
+        "address": "",
+        "wif": wallet.privkey_to_wif(self.master_key),
+        "children": []
+        }
+
 
 
     def do_port(self, args):
@@ -49,42 +69,21 @@ class Cli(cmd.Cmd):
 
 
     def do_new(self, args):
-        "Generates new pair of public and private keys"
+        "Generates new child private key"
         print("\033[0;37;40m")
-        privkey = wallet.gen_privkey()
-        wif = wallet.privkey_to_wif(privkey)
-        vk = wallet.get_pubkey_str(privkey)
-        pub_address = wallet.gen_address(vk)
-        self.wif_address[wif] = pub_address
-        self.wif = wif
-        self.address = pub_address
-        f = open("addresses.txt", "a+")
-        f.write(pub_address + "\n")
-        f.close()
-        print("Private key : " + privkey)
-        print("Address     : " + pub_address)
+        ind = len(self.wallet["children"])
+        childm, childc = wallet.get_key_chain(self.wallet["public_key"] + self.chaincode + str(ind))
+        self.wallet["children"].append([childm, childc])
+        addr = wallet.gen_address(wallet.get_pubkey_str(childm))
+        open("addresses.txt", "a+").write(addr)
+        print("New child was generated: ")
+        print("Child private key: ", childm)
+        print("Addres:            ", addr)
 
-
-    def do_import(self, path):
-        "Import WIF from file: import PATH"
-        print("\033[0;37;40m")
-        if not path:
-            print("Please, enter path to file.")
-            return
-        try:
-            self.wif = open(path, "r").read(51)
-            privkey = wallet.wif_to_privkey(self.wif)
-            pubkey = wallet.get_pubkey_str(privkey)
-            pub_address = wallet.gen_address(pubkey)
-            self.address = pub_address
-            self.wif_address[self.wif] = pub_address
-            f = open("addresses.txt", "a+")
-            f.write(pub_address + "\n")
-            f.close()
-            print("Private key ( WIF ): " + self.wif + " was imported to wallet")
-            print("Public address     : " + pub_address)
-        except:
-            print("File " + path + " doesn't exist or has invalid forma ( WIF needed )")
+    def do_children(self, args):
+        "Shows childs private key"
+        for c in self.wallet["children"]:
+            print(c[0] + "\n")
 
 
     def do_send(self, args):
@@ -95,12 +94,9 @@ class Cli(cmd.Cmd):
         except:
             print("Please, enter recipient and amount")
             return
-        if self.wif == "":
-            print("Please, type new to generate key or import file to import from file")
-            return
         try:
             self.chain.utxo_pool.update_pool([])
-            tx = form_tx.form_transaction(self.address, recipient, int(amount), self.utxo, self.wif)
+            tx = form_tx.form_transaction(self.addresses[0], recipient, int(amount), self.chain.utxo_pool, self.wallet["wif"])
             tx_str = Serializer().serialize(tx)
             self.tx_to_broadcast.append(tx_str)
             print("Serialized: " + tx_str)
@@ -114,34 +110,50 @@ class Cli(cmd.Cmd):
         (you can use flag -testnet)."
         print("\033[0;37;40m")
         try:
-            if args == "-testnet":
-                self.testnet = 1
             count = 0
             print("tx to bradcast: " + str(self.tx_to_broadcast))
             for t in self.tx_to_broadcast:
                 self.chain.submit_tx(self.server_port + "/transaction/new", t)
                 count += 1
-            print(str(count) + " txs was broadcasted( testenet = " + str(self.testnet) + " )")
+            print(str(count) + " txs was broadcasted.")
         except:
             print("No connection")
         self.tx_to_broadcast = []
 
-
-    def do_seemempool(self, args):
-        "Shows transactions from the mempool in JSON"
+    def do_get10(self, args):
         print("\033[0;37;40m")
-        try:
-            requests.post(self.server_port + "/transaction/pending")
-        except:
-            print("No connection")
-            return
+        children_amount = len(self.wallet["children"])
+        i = 20
+        while children_amount < i:
+            childm, childc = wallet.get_key_chain(self.wallet["public_key"] + self.chaincode + str(children_amount))
+            self.wallet["children"].append([childm, childc])
+            children_amount = len(self.wallet["children"])
+            
+        k = 0
+
+        print("Receiving: ")
+        for k in range(10):
+            c = self.wallet["children"][k]
+            addr = wallet.gen_address(wallet.get_pubkey_str(c[0]))
+            self.addresses.append(addr)
+            open("addresses.txt", "a+").write(addr + "\n")
+            print(k, ". ", addr)
+            k += 1
+        print("Change addresses: ")
+        for k in range(10, 20):
+            c = self.wallet["children"][k]
+            addr = wallet.gen_address(wallet.get_pubkey_str(c[0]))
+            self.addresses.append(addr)
+            open("addresses.txt", "a+").write(addr + "\n")
+            print(k - 10, ". ", addr)
+            k += 1
 
 
     def do_addr(self, args):
         "Shows list of addresses"
         print("\033[0;37;40m")
         print("My addresses:")
-        for a in self.wif_address.values():
+        for a in self.addresses:
             print("--> " + a)
 
 
@@ -161,7 +173,7 @@ class Cli(cmd.Cmd):
         self.chain.utxo_pool.update_pool([])
         total = 0
         print("Balances of all my addresses: ")
-        for a in self.wif_address.values():
+        for a in self.addresses:
             cur_bal = self.chain.utxo_pool.get_balance(a) 
             total += cur_bal
             print("Balance of " + a + " is: " + str(self.chain.utxo_pool.get_balance(a)))
