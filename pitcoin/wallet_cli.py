@@ -2,6 +2,7 @@
 
 import wallet
 import cmd
+import secrets
 from transaction import Transaction, Input, Output
 from serializer import Serializer, Deserializer
 from pending_pool import get_tx

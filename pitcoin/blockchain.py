@@ -104,6 +104,7 @@ class Blockchain():
         chain = requests.get("http://" + longest_chain_url + "/chain").json()
         if self.height() < longest_length: #check
             open("blks.json", "w").close()
+            open("utxo.json", "w").close()
             for c in chain:
                 print("BLOCK----> " + str(c))
                 self.db.insert(c)
