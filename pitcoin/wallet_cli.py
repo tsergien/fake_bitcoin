@@ -25,19 +25,26 @@ class Cli(cmd.Cmd):
 
         self.tx_to_broadcast = []
         self.chain = Blockchain()
-        self.server_ip = "http://127.0.0.1:5000"
         self.wif_address = {}
         self.wif = ""
         self.address = ""
         self.testnet = 0
         self.utxo = Utxos()
+        try:
+            with open("config.conf", "r") as f:
+                self.server_port = f.read()
+        except:
+            with open("config.conf", "w") as f:
+                f.write("127.0.0.1:5000")
+            self.server_port = open("config.conf", "r").write("127.0.0.1:5000")
+
 
     def do_port(self, args):
         print("\033[0;37;40m")
         "Change port"
         if len(args) == 4 and args.isdigit():
-            self.server_ip = "http://127.0.0.1:" + args
-            print("set: " + self.server_ip)
+            self.server_port = "http://127.0.0.1:" + args
+            print("set: " + self.server_port)
 
     def do_new(self, args):
         "Generates new pair of public and private keys"
@@ -109,7 +116,7 @@ class Cli(cmd.Cmd):
             count = 0
             print("tx to bradcast: " + str(self.tx_to_broadcast))
             for t in self.tx_to_broadcast:
-                self.chain.submit_tx(self.server_ip + "/transaction/new", t)
+                self.chain.submit_tx(self.server_port + "/transaction/new", t)
                 count += 1
             print(str(count) + " txs was broadcasted( testenet = " + str(self.testnet) + " )")
         except:
@@ -121,7 +128,7 @@ class Cli(cmd.Cmd):
         "Shows transactions from the mempool in JSON"
         print("\033[0;37;40m")
         try:
-            requests.post(self.server_ip + "/transaction/pending")
+            requests.post(self.server_port + "/transaction/pending")
         except:
             print("No connection")
             return

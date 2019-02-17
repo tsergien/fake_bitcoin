@@ -3,8 +3,9 @@
 import cmd
 from blockchain import Blockchain
 import requests
-
-# do_conbsensus
+import wallet
+import form_tx
+from serializer import Serializer
 
 class Miner_cli(cmd.Cmd):
 
@@ -14,6 +15,14 @@ class Miner_cli(cmd.Cmd):
         self.intro  = "*** Miner command line interface ***\nType 'help' to get usage.\n"
         self.doc_header = " Commands "
         self.chain = Blockchain()
+        try:
+            with open("config.conf", "r") as f:
+                self.server_port = f.read()
+        except:
+            with open("config.conf", "w") as f:
+                f.write("127.0.0.1:5000")
+            self.server_port = open("config.conf", "r").write("127.0.0.1:5000")
+
 
     def do_addnode(self, args):
         print("\033[0;37;40m")
@@ -35,15 +44,20 @@ class Miner_cli(cmd.Cmd):
         self.chain.mine()
         print("Stopping mining")
 
-    def do_mineN(self, args):
+    def do_premineN(self, args):
         print("\033[0;37;40m")
         "start auto mining process"
         print("Starting mining")
-        nodes = self.chain.get_nodes_list()
+        addresses = [wallet.gen_address(self.chain.miner_wif), wallet.gen_address(self.chain.miner_wif), wallet.gen_address(self.chain.miner_wif)]
         N = int(args)
         i = 0
         while i < N:
             i += 1
+            # sending random transactions between self addresses
+            if i != 0:
+                self.chain.utxo_pool.update_pool([])
+                tx = form_tx.form_transaction(self.chain.address, addresses[i % 3], 70 + i * i, self.chain.utxo_pool, self.chain.miner_wif)
+                self.chain.submit_tx(self.server_port + "/transaction/new", Serializer().serialize(tx))
             self.chain.mine()
         print("Stopping mining")
 

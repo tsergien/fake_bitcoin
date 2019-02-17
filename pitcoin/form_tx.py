@@ -12,7 +12,6 @@ tx_fee = 10
 satoshi = 10000000
 
 
-
 # class Input(self, prev_txid, prev_vout, scriptSig, seq):
 def form_coinbase(miner_address, wif, g_miner_reward):
     outputs = [ Output(g_miner_reward, miner_address) ]
