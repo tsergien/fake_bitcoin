@@ -54,10 +54,8 @@ class Cli(cmd.Cmd):
         "xprivate_key": "",
         "xpublic_key": "",
         "address": "",
-        "wif": wallet.privkey_to_wif(self.master_key),
         "children": []
         }
-
 
 
     def do_port(self, args):
@@ -75,10 +73,12 @@ class Cli(cmd.Cmd):
         childm, childc = wallet.get_key_chain(self.wallet["public_key"] + self.chaincode + str(ind))
         self.wallet["children"].append([childm, childc])
         addr = wallet.gen_address(wallet.get_pubkey_str(childm))
+        self.addresses.append(addr)
         open("addresses.txt", "a+").write(addr)
         print("New child was generated: ")
         print("Child private key: ", childm)
         print("Addres:            ", addr)
+
 
     def do_children(self, args):
         "Shows childs private key"
@@ -123,30 +123,26 @@ class Cli(cmd.Cmd):
     def do_get10(self, args):
         print("\033[0;37;40m")
         children_amount = len(self.wallet["children"])
-        i = 20
-        while children_amount < i:
-            childm, childc = wallet.get_key_chain(self.wallet["public_key"] + self.chaincode + str(children_amount))
+        init_chil = children_amount
+        for i in range(20):
+            childm, childc = wallet.get_key_chain(self.wallet["public_key"] + self.chaincode + str(children_amount + i))
             self.wallet["children"].append([childm, childc])
             children_amount = len(self.wallet["children"])
             
-        k = 0
-
         print("Receiving: ")
         for k in range(10):
-            c = self.wallet["children"][k]
+            c = self.wallet["children"][init_chil + k]
             addr = wallet.gen_address(wallet.get_pubkey_str(c[0]))
             self.addresses.append(addr)
             open("addresses.txt", "a+").write(addr + "\n")
             print(k, ". ", addr)
-            k += 1
         print("Change addresses: ")
         for k in range(10, 20):
-            c = self.wallet["children"][k]
+            c = self.wallet["children"][init_chil + k]
             addr = wallet.gen_address(wallet.get_pubkey_str(c[0]))
             self.addresses.append(addr)
             open("addresses.txt", "a+").write(addr + "\n")
             print(k - 10, ". ", addr)
-            k += 1
 
 
     def do_addr(self, args):
