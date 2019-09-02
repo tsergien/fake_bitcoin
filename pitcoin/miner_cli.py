@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 
 import cmd
-from blockchain import Blockchain
+from blockchain import Blockchain, block_from_JSON
 import requests
 import wallet
 import form_tx
 from serializer import Serializer
+from serializer import Deserializer
+import script
+import json
 
 class Miner_cli(cmd.Cmd):
 
@@ -93,16 +96,55 @@ class Miner_cli(cmd.Cmd):
         except:
             print("There are no nodes.")
 
-    def do_chainlen(self, args):
+    def do_height(self, args):
         print("\033[0;37;40m")
-        "Shows my current address (just for seeing balance)"
-        print("Current chain length: " + str(self.chain.height()))
+        "Shows how many block there are"
+        print(f'Current chain length: {self.chain.height()}')
+
+    def do_last_hash(self, args):
+        print("\033[0;37;40m")
+        "Shows last block hash"
+        print(f'Last block hash: {self.chain.prev_hash()}')
+
+    def do_block_info(self, data):
+        print("\033[0;37;40m")
+        "Shows lblock info by id"
+        if (len(data) < 1):
+            print(f'Please enter id of hash of block which info you\'d like to see.')
+        print(f'Block[{data}]: {self.chain.get_block_info(data)}')
+
 
     def do_consensus(self, args):
         print("\033[0;37;40m")
         "Connect to other nodes and get full chain, compare it and\
         resolve conflicts by choosing more longer chain and replace current"
         self.chain.resolve_conflicts()
+
+
+    def do_balance(self, args):
+        "Shows balance of passed address"
+        print("\033[0;37;40m")
+        if  not script.check_availability(args):
+            print("Please, enter valid address")
+            return
+        self.chain.utxo_pool.update_pool([])
+        print(f'Balance of {args} is: {self.chain.utxo_pool.get_balance(args)}')
+    
+
+    def do_history(self, addr):
+        print("\033[0;37;40m")
+        "Display history of all transactions  made by passed address."
+        my_scriptPubKey = script.get_scriptPubKey(addr)
+        for i in range(self.chain.height()):
+            b = block_from_JSON(i);
+            for tx in b.txs:
+                tx_d = Deserializer().deserialize(tx)
+                for o in tx_d.outputs:
+                    if o.scriptPubKey == my_scriptPubKey:
+                        print(f'\033[1;32;40mTransaction:\033[0;37;40m {tx_d.toJSON()}')
+
+
+
 
     def do_exit(self,*args):
         return True

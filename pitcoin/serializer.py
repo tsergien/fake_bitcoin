@@ -103,10 +103,6 @@ class Deserializer():
 
 
 
-
-
-
-
 import script
 import form_tx
 import utxo_set

@@ -67,7 +67,22 @@ class Cli(cmd.Cmd):
             print("set: " + self.server_port)
 
 
-    def do_new(self, args):
+    def do_new_key(self, args):
+        "Generates new pair of public and private keys"
+        privkey = wallet.gen_privkey()
+        wif = wallet.privkey_to_wif(privkey)
+        vk = wallet.get_pubkey_str(privkey)
+        pub_address = wallet.gen_address(vk)
+        self.wallet["wif"] = pub_address
+        self.addresses.append(pub_address)
+        f = open("addresses.txt", "a+")
+        f.write(pub_address + "\n")
+        f.close()
+        print("Private key : " + privkey)
+        print("Address     : " + pub_address)
+
+
+    def do_new_child(self, args):
         "Generates new child private key"
         print("\033[0;37;40m")
         ind = len(self.wallet["children"])
@@ -112,14 +127,17 @@ class Cli(cmd.Cmd):
         except:
             print("Please, enter recipient and amount")
             return
-        try:
+        # try:
+        if args:
             self.chain.utxo_pool.update_pool([])
-            tx = form_tx.form_transaction(self.addresses[0], recipient, int(amount), self.chain.utxo_pool, self.wallet["wif"])
+            print("pool updated.")
+            tx = form_tx.form_transaction(self.addresses[-1], recipient, int(amount), self.chain.utxo_pool, self.wallet["wif"])
+            print("tx.formed")
             tx_str = Serializer().serialize(tx)
             self.tx_to_broadcast.append(tx_str)
             print("Serialized: " + tx_str)
-        except:
-            print("Error. Probably you have not enough money.")
+        # except:
+            # print("Error. Probably you have not enough money.")
 
 
     def do_broadcast(self, args):
@@ -186,8 +204,9 @@ class Cli(cmd.Cmd):
         print("\033[0;37;40m")
         self.chain.utxo_pool.update_pool([])
         total = 0
+        unique_addr = set(self.addresses)
         print("Balances of all my addresses: ")
-        for a in self.addresses:
+        for a in unique_addr:
             cur_bal = self.chain.utxo_pool.get_balance(a) 
             total += cur_bal
             print("Balance of " + a + " is: " + str(self.chain.utxo_pool.get_balance(a)))

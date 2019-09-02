@@ -178,6 +178,16 @@ class Blockchain():
         denominator = math.pow(2, int(self.height() / 5))
         return int(g_miner_reward / denominator)
        
+    def get_block_info(self, data):
+        if data.isnumeric():
+            blk = block_from_JSON(int(data))
+            if blk:
+                return blk.toJSON()
+        for i in range(self.height()):
+            blk = block_from_JSON(i)
+            if blk and blk.hash == data:
+                return blk.toJSON()
+        print(f'Block with hash {data} doesnt exist.')
 
 def to_bitsn(target):
     target_str = str(hex(target))[2:]
@@ -189,7 +199,6 @@ def to_bitsn(target):
     res = str(hex(int(l / 2))) + target_str
     return int(res, 16)
     
-
 
 
 
