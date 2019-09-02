@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 import cmd
 from blockchain import Blockchain
@@ -104,8 +104,13 @@ class Miner_cli(cmd.Cmd):
         resolve conflicts by choosing more longer chain and replace current"
         self.chain.resolve_conflicts()
 
+    def do_exit(self,*args):
+        return True
+
     def default(self, line):
          print("\033[1;31;40m Command is not valid \033[0;37;40m")
+
+
 
 if __name__ == "__main__":
     cli = Miner_cli()

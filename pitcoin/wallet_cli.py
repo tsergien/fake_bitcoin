@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 import wallet
 import cmd
@@ -56,6 +56,7 @@ class Cli(cmd.Cmd):
         "address": "",
         "children": []
         }
+        self.wif_address = {}
 
 
     def do_port(self, args):
@@ -74,11 +75,28 @@ class Cli(cmd.Cmd):
         self.wallet["children"].append([childm, childc])
         addr = wallet.gen_address(wallet.get_pubkey_str(childm))
         self.addresses.append(addr)
-        open("addresses.txt", "a+").write(addr)
+        open("addresses.txt", "a+").write(addr+ "\n")
         print("New child was generated: ")
         print("Child private key: ", childm)
         print("Addres:            ", addr)
 
+    def do_import(self, path):
+        "Import WIF from file: import PATH"
+        if not path:
+            print("Please, enter path to file.")
+            return
+        try:
+            self.wallet["wif"] = open(path, "r").read(51)
+            privkey = wallet.wif_to_privkey(self.wallet["wif"])
+            pubkey = wallet.get_pubkey_str(privkey)
+            self.addresses.append(wallet.gen_address(pubkey))
+            f = open("addresses.txt", "a+")
+            f.write(self.addresses[-1] + "\n")
+            f.close()
+            print("Private key ( WIF ): " + self.wallet["wif"] + " was imported to wallet")
+            print("Public address     : " + self.addresses[-1])
+        except:
+            print("File " + path + " doesn't exist or has invalid form ( WIF needed )")
 
     def do_children(self, args):
         "Shows childs private key"
@@ -175,6 +193,8 @@ class Cli(cmd.Cmd):
             print("Balance of " + a + " is: " + str(self.chain.utxo_pool.get_balance(a)))
         print("Total balance is: " + str(total))
 
+    def do_exit(self,*args):
+        return True
 
     def default(self, line):
         print("\033[1;31;40m Command is not valid \033[0;37;40m")

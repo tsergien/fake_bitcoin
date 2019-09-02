@@ -51,13 +51,11 @@ class Serializer():
 			s += bytes.fromhex(tx.outputs[i].scriptPubKey)
 		s += struct.pack("<L", tx.nLocktime)
 		s = hexlify(s).decode('utf-8')
-		# print("SERIALIZED: " + str(s))
 		return s
 
 class Deserializer():
 
 	def deserialize(self, serial):
-		# try:
 		inputs = []
 		outputs = []
 		version = int(little_endian(serial[:8]), 16)
@@ -76,10 +74,8 @@ class Deserializer():
 			outputs.append(output)
 		nLocktime = int(little_endian(serial), 16)
 		tx = Transaction(version, inputs, outputs, nLocktime)
-		# print("\nDESERIALIZED: " + tx.toJSON())
 		return tx
-		# except:
-			# print("Cant deserialize not valid P2PKH transaction")
+
 
 	def deserialize_input(self, serial): 
 		txid = little_endian(serial[:64])

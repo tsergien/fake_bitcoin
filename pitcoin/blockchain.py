@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 from transaction import Transaction, CoinbaseTransaction, Output
 from block import Block, block_from_JSON, count_target, max_target
