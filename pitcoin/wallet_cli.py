@@ -73,7 +73,7 @@ class Cli(cmd.Cmd):
         wif = wallet.privkey_to_wif(privkey)
         vk = wallet.get_pubkey_str(privkey)
         pub_address = wallet.gen_address(vk)
-        self.wallet["wif"] = pub_address
+        self.wallet["wif"] = wif
         self.addresses.append(pub_address)
         f = open("addresses.txt", "a+")
         f.write(pub_address + "\n")
