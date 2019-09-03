@@ -50,7 +50,7 @@ class Block():
 
 
 def count_target(bits):
-    exp = bits >> 24
+    exp = bits >> 12 # 24
     mant = bits & 0xffffff
     target = mant * (1 << (8 * (exp - 3)))
     return target

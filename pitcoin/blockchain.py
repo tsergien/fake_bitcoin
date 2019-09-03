@@ -14,12 +14,12 @@ import wallet
 from utxo_set import Utxos
 import re
 import math
-from form_tx import form_coinbase, form_transaction
+from form_tx import form_coinbase, form_transaction, tx_fee
 import time
 
 max_time = 10 # 2 weeks
 min_time = 1 # half of a week
-g_miner_reward = 5000
+g_miner_reward = 100000
 first_prev_txid = "00000000000000000000000000000000000000000000000000000000000000"
 
 class Blockchain():
@@ -28,7 +28,7 @@ class Blockchain():
         self.db = TinyDB('blks.json')
         self.utxo_pool = Utxos()
         self.utxo_pool.update_pool([])##############################
-        self.bits = 0x22222222
+        self.bits = 0x33222222
         try:
             with open("miner_key", "r")as f:
                 self.miner_wif = f.read(51)
@@ -47,9 +47,13 @@ class Blockchain():
     def mine(self):
         if self.height() == 0:
             return self.genesis_block()
-        coinbase_tx = form_coinbase(self.address, self.miner_wif, self.get_current_reward())
-        serialized_cb = Serializer().serialize(coinbase_tx)
         txs = pending_pool.get_first3()
+        fee = 0
+        if len(txs) > 0:
+            fee = (len(txs)) * tx_fee
+            print(f'fee = {fee}')
+        coinbase_tx = form_coinbase(self.address, self.miner_wif, self.get_current_reward() + fee)
+        serialized_cb = Serializer().serialize(coinbase_tx)
         txs.insert(0, serialized_cb)
         b = Block(time.time(), self.prev_hash(), txs, 0, self.bits).mine()
         b.height = self.height()
@@ -65,8 +69,8 @@ class Blockchain():
                 'Transaction Counter': len(b.txs),
                 'Transactions': b.txs
                 })
-        # if self.height() % 5 == 0:
-        #     self.recalculate_bits()
+        if self.height() % 5 == 0:
+            self.recalculate_bits()
         self.utxo_pool.update_pool(txs)
 
     def genesis_block(self):
@@ -112,17 +116,18 @@ class Blockchain():
 
 
     def recalculate_bits(self):
+        print(f'Old bits: {self.bits}')
         diff_time = self.db.all()[-1]['Timestamp'] - self.db.all()[-5]['Timestamp']
+        print(f'diff time: {diff_time}')
         if diff_time > max_time:
             diff_time = max_time
         elif diff_time < min_time:
             diff_time = min_time
-        curr_bits = int(self.db.all()[-1]['Difficulty Target'], 16)
-        new_target = (diff_time * count_target(curr_bits)) // max_time
+        new_target = (diff_time * count_target(self.bits)) // max_time
         if new_target > max_target:
             new_target = max_target
         self.bits = to_bitsn(new_target)
-        print("New bits: " + str(self.bits))
+        print(f'New bits: {self.bits}')
 
 
     def is_valid_chain(self):
@@ -175,7 +180,7 @@ class Blockchain():
         return diff
     
     def get_current_reward(self):
-        denominator = math.pow(2, int(self.height() / 5))
+        denominator = math.pow(2, self.height() // 5)
         return int(g_miner_reward / denominator)
        
     def get_block_info(self, data):

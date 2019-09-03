@@ -15,7 +15,7 @@ class Miner_cli(cmd.Cmd):
     def __init__(self):
         cmd.Cmd.__init__(self)
         self.prompt = "\033[1;32;40m > "
-        self.intro  = "*** Miner command line interface ***\nType 'help' to get usage.\n"
+        self.intro  = "\033[1;34;40m*** Miner command line interface ***\nType 'help' to get usage.\033[0;37;40m\n"
         self.doc_header = " Commands "
         self.chain = Blockchain()
         try:
