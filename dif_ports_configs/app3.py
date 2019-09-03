@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 from transaction import Transaction
 from serializer import Deserializer, Serializer
